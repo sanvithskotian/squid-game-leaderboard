@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Squid Game Leaderboard</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap">
+<style>
+:root{--bg:#0a0a0e;--panel:#14141c;--line:#2a2a38;--pink:#ed1b76;--teal:#0d9e8c;--text:#f2f2f5;--mute:#8b8b9c;--gold:#f5c542;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0a0a0e}}
+:root[data-theme="dark"]{--bg:#0a0a0e}
+*{box-sizing:border-box}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:radial-gradient(circle at 50% -10%,#2a0f1e 0,var(--bg) 55%) fixed;color:var(--text);font-family:"Arial Narrow","Helvetica Neue",Arial,sans-serif;min-height:100vh}
+nav{display:flex;gap:8px;justify-content:center;padding:12px}
+nav button{background:var(--panel);color:var(--mute);border:1px solid var(--line);padding:10px 22px;letter-spacing:2px;font-weight:700;cursor:pointer;text-transform:uppercase;border-radius:4px}
+nav button.on{background:var(--pink);color:#fff;border-color:var(--pink)}
+.hide{display:none!important}
+h1{margin:6px 0 2px;text-align:center;font-size:clamp(28px,6vw,60px);letter-spacing:6px;text-transform:uppercase;font-weight:900}
+h1 span{color:var(--pink)}
+.sub{text-align:center;color:var(--mute);letter-spacing:5px;font-size:13px;margin-bottom:18px}
+.shapes{text-align:center;font-size:26px;color:var(--pink);letter-spacing:14px;margin-top:6px}
+.wrap{max-width:1000px;margin:0 auto;padding:0 14px 30px}
+#board{position:relative;width:100%}
+.row{position:absolute;left:0;right:0;display:flex;align-items:center;gap:12px;padding:0 12px;background:var(--panel);border:1px solid var(--line);border-left:5px solid var(--teal);border-radius:4px;transition:top .8s cubic-bezier(.3,1.2,.4,1),background .4s}
+.row.lead{border-left-color:var(--pink);box-shadow:0 0 22px rgba(237,27,118,.35)}
+.rk{width:44px;text-align:center;font-size:24px;font-weight:900;color:var(--pink)}
+.nm{width:28%;min-width:80px;font-weight:800;letter-spacing:1px;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:clamp(14px,2.4vw,24px)}
+.track{flex:1;height:48%;background:#0c0c12;border-radius:3px;overflow:hidden}
+.fill{height:100%;width:0;background:linear-gradient(90deg,var(--teal),#35d6c0);transition:width .8s cubic-bezier(.3,1,.4,1)}
+.lead .fill{background:linear-gradient(90deg,#a3104f,var(--pink))}
+.sc{width:84px;text-align:right;font-size:clamp(18px,3vw,32px);font-weight:900;font-variant-numeric:tabular-nums}
+.row.up{background:#0f2a26}.row.down{background:#2e1019}
+/* admin */
+
+/* admin */
+
+.bar{
+  display:grid !important;
+  grid-template-columns:1fr auto !important;
+  gap:30px !important;
+  align-items:end !important;
+
+  background:var(--panel);
+  border:1px solid var(--line);
+  padding:16px 18px !important;
+  border-radius:6px;
+  margin-bottom:16px;
+}
+
+.control-group{
+  display:flex !important;
+  flex-direction:column !important;
+  gap:8px !important;
+  width:100% !important;
+}
+
+.control-group label{
+  display:block;
+  color:var(--mute);
+  font-size:12px;
+  letter-spacing:2px;
+  text-transform:uppercase;
+  margin:0;
+}
+
+.control-row{
+  display:flex !important;
+  align-items:center !important;
+  gap:8px !important;
+  width:100% !important;
+}
+
+.control-row .btn{
+  width:42px !important;
+  min-width:42px !important;
+  height:38px;
+  padding:0 !important;
+}
+
+.control-row input{
+  flex:1 !important;
+  width:0 !important;
+  height:38px;
+  text-align:center;
+}
+
+.bar-actions{
+  display:flex !important;
+  justify-content:center !important;
+  align-items:center !important;
+  gap:12px !important;
+  width:auto;
+  margin:0 !important;
+}
+
+.bar-actions .btn{
+  width:170px !important;
+  min-width:170px !important;
+  height:42px;
+}
+
+
+/* STARTING POINTS */
+
+.starting-box{
+  background:var(--panel);
+  border:1px solid var(--line);
+  border-radius:6px;
+  padding:18px;
+  margin-bottom:16px;
+}
+
+.starting-title{
+  text-align:center;
+  color:var(--mute);
+  font-size:13px;
+  letter-spacing:3px;
+  text-transform:uppercase;
+  margin-bottom:14px;
+}
+
+.starting-controls{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:16px;
+}
+
+.starting-controls input{
+  width:180px;
+  height:42px;
+  text-align:center;
+  font-size:18px;
+}
+
+.starting-controls .btn{
+  height:42px;
+  min-width:180px;
+}
+
+
+/* TEAM CARDS */
+
+.card{
+  background:var(--panel);
+  border:1px solid var(--line);
+  border-radius:6px;
+  padding:16px;
+}
+
+.card .top{
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
+
+.card .pid{
+  width:32px;
+  min-width:32px;
+  height:32px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background:#0c0c12;
+  border:1px solid var(--line);
+  border-radius:4px;
+  color:var(--pink);
+  font-weight:900;
+}
+
+.card .nmi{
+  flex:1;
+  min-width:0;
+  height:38px;
+}
+
+.card .big{
+  text-align:center;
+  font-size:32px;
+  font-weight:900;
+  margin:16px 0 14px;
+}
+
+.card .score-label{
+  text-align:center;
+  color:var(--mute);
+  font-size:11px;
+  letter-spacing:2px;
+  margin-top:14px;
+}
+
+.card .point-label{
+  text-align:center;
+  color:var(--mute);
+  font-size:11px;
+  letter-spacing:2px;
+  margin-bottom:6px;
+}
+
+.card .pv{
+  display:block;
+  width:100%;
+  height:38px;
+  text-align:center;
+  font-size:16px;
+  margin-bottom:12px;
+}
+
+.card .ctl{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:8px;
+}
+
+.card .ctl .btn{
+  width:100% !important;
+  min-width:0 !important;
+  height:42px;
+  padding:0 8px !important;
+  font-size:12px;
+}
+button,input{font:inherit}
+.btn{background:#1d1d29;color:var(--text);border:1px solid var(--line);padding:9px 14px;border-radius:4px;cursor:pointer;font-weight:700}
+.btn:active{transform:scale(.96)}
+.btn.p{background:var(--pink);border-color:var(--pink)}
+.btn.t{background:var(--teal);border-color:var(--teal)}
+input{background:#0c0c12;color:var(--text);border:1px solid var(--line);border-radius:4px;padding:9px;width:100%}
+#cnt,#step{width:64px;text-align:center}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px}
+.card{background:var(--panel);border:1px solid var(--line);border-top:3px solid var(--pink);padding:12px;border-radius:6px}
+.card .top{display:flex;align-items:center;gap:8px}
+.pid{background:var(--pink);color:#fff;font-weight:900;border-radius:50%;min-width:32px;height:32px;display:grid;place-items:center}
+.big{font-size:42px;font-weight:900;text-align:center;margin:8px 0;font-variant-numeric:tabular-nums}
+.ctl{display:flex;gap:8px}.ctl .btn{flex:1;font-size:18px}
+.set{margin-top:8px}
+
+.bg{position:fixed;inset:0;width:100%;height:100%;z-index:-1;fill:none;stroke:var(--pink);stroke-width:.5;opacity:.22;pointer-events:none}
+.bg .b2{stroke:var(--teal)}.bg .b1,.bg .b2,.bg .b3{transform-box:fill-box;transform-origin:center;animation:fl 14s ease-in-out infinite alternate}
+.bg .b2{animation-duration:18s}.bg .b3{animation-duration:22s;animation-direction:alternate-reverse}
+@keyframes fl{to{transform:translateY(-4px) rotate(40deg) scale(1.15)}}
+.logo{display:flex;justify-content:center;gap:16px;margin-top:8px}
+.sh{width:58px;height:58px;display:grid;place-items:center;border:3px solid var(--pink);border-radius:50%;font-size:34px;color:#fff;background:var(--pink);box-shadow:0 0 24px rgba(237,27,118,.6);animation:bob 2.4s ease-in-out infinite}
+.sh.t{animation-delay:.3s;border-radius:8px;background:transparent;color:var(--pink)}.sh.q{animation-delay:.6s;border-radius:4px;background:transparent;color:var(--pink)}
+@keyframes bob{50%{transform:translateY(-6px)}}
+h1{font-family:"Bebas Neue",Impact,"Arial Narrow",sans-serif;font-size:clamp(44px,9vw,110px);letter-spacing:10px;line-height:1;text-shadow:0 0 30px rgba(237,27,118,.55),3px 3px 0 #000;margin:10px 0 4px}
+h1 span{color:var(--pink);text-shadow:0 0 30px rgba(237,27,118,.9),3px 3px 0 #000}
+.sub{font-size:clamp(11px,1.8vw,16px)}
+.dot{display:inline-block;width:10px;height:10px;border-radius:50%;background:#ff2d2d;margin-right:8px;animation:blink 1s infinite}
+@keyframes blink{50%{opacity:.15}}
+.stats{
+  display:flex;
+  gap:10px;
+  margin:0 0 18px;
+}
+
+.stats div{
+  flex:1;
+  background:linear-gradient(180deg,#1b1b26,#101018);
+  border:1px solid var(--line);
+  border-top:3px solid var(--teal);
+  border-radius:6px;
+  text-align:center;
+  padding:8px 6px;
+  min-width:0;
+}
+
+.stats div:last-child{
+  border-top-color:var(--pink);
+}
+.stats small{display:block;color:var(--mute);letter-spacing:3px;font-size:11px}
+.stats b{font-family:"Bebas Neue",Impact,sans-serif;font-size:clamp(20px,4vw,40px);letter-spacing:2px;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pz b{color:var(--gold);text-shadow:0 0 14px rgba(245,197,66,.45)}
+.row{background:linear-gradient(90deg,#0f3a35 0,#12212a 38%,var(--panel) 100%);border-color:#1f5a52;border-left-color:var(--teal)}
+.row.lead{background:linear-gradient(90deg,#6b0f38 0,#2a1020 40%,var(--panel) 100%);animation:glow 1.6s ease-in-out infinite alternate}
+@keyframes glow{to{box-shadow:0 0 34px rgba(237,27,118,.7)}}
+.row.danger{border-left-color:#ff2d2d}
+.pn{display:none!important}
+.nm{
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  align-items:flex-start;
+  height:100%;
+  width:26%;
+}
+.nm b{
+  font-family:"Bebas Neue",Impact,"Arial Narrow",sans-serif;
+  font-size:clamp(18px,3vw,32px);
+  letter-spacing:2px;
+  font-weight:400;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+  line-height:1;
+}
+.nm i{
+  font-style:normal;
+  font-size:10px;
+  letter-spacing:3px;
+  color:var(--pink);
+  font-weight:800;
+  min-height:0;
+}
+.danger .nm i{color:#ff4d4d;animation:blink 1s infinite}
+.fill{background:repeating-linear-gradient(115deg,var(--teal) 0 12px,#35d6c0 12px 24px)}
+.lead .fill{background:repeating-linear-gradient(115deg,#a3104f 0 12px,var(--pink) 12px 24px)}
+.sc{font-family:"Bebas Neue",Impact,sans-serif;font-weight:400;letter-spacing:1px;font-size:clamp(24px,4vw,44px)}
+.row.up{animation:pop .9s}.row.down{animation:shake .5s}
+@keyframes pop{30%{transform:scale(1.03);background:#14574d}}
+@keyframes shake{25%{transform:translateX(-6px)}60%{transform:translateX(6px)}}
+@media(max-width:600px){
+  .nm{width:34%}
+  .sc{width:60px}
+    .bar{
+    grid-template-columns:1fr !important;
+    gap:16px !important;
+  }
+
+  .bar-actions{
+    width:100%;
+  }
+
+  .bar-actions .btn{
+    flex:1;
+    width:auto !important;
+    min-width:0 !important;
+  }
+
+  .starting-controls{
+    flex-direction:column;
+  }
+
+  .starting-controls input,
+  .starting-controls .btn{
+    width:100%;
+    min-width:0;
+  }
+}
+</style>
+</head>
+<body>
+<div id="st" style="position:fixed;right:10px;top:calc(env(safe-area-inset-top,0px) + 6px);font-size:11px;letter-spacing:2px;color:#8b8b9c;z-index:9">○ LOCAL ONLY</div>
+<nav id="nav">
+  <button id="tP" class="on">Projector</button>
+  <button id="tA">Admin</button>
+</nav>
+
+<svg class="bg" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+  <circle class="b1" cx="14" cy="22" r="9"/><polygon class="b2" points="86,60 96,80 76,80"/><rect class="b3" x="70" y="8" width="14" height="14"/>
+  <circle class="b2" cx="20" cy="84" r="6"/><rect class="b1" x="4" y="52" width="9" height="9"/><polygon class="b3" points="50,92 56,100 44,100"/>
+</svg>
+<section id="vP" class="wrap">
+  <div class="logo"><span class="sh c">○</span><span class="sh t">△</span><span class="sh q">□</span></div>
+  <h1><span>Squid</span> Game</h1>
+  <div class="sub"><i class="dot"></i> THE GAMES ARE LIVE</div>
+  <div class="stats">
+  <div><small>TEAMS</small><b id="sP">0</b></div>
+  <div><small>LEADING</small><b id="sL">—</b></div>
+</div>
+  <div id="board"></div>
+</section>
+
+<section id="vA" class="wrap hide">
+
+  <h1 style="font-size:clamp(22px,5vw,38px)">Admin <span>Control</span></h1>
+
+  <div class="sub">MANAGE TEAMS &amp; POINTS</div>
+
+  <!-- TOP CONTROLS -->
+  <div class="bar">
+
+    <div class="control-group">
+      <label>TEAMS</label>
+
+      <div class="control-row">
+        <button class="btn" id="cm">−</button>
+        <input id="cnt" type="number" min="1" max="15">
+        <button class="btn" id="cp">+</button>
+      </div>
+    </div>
+
+    <div class="bar-actions">
+      <button class="btn t" id="openP">OPEN PROJECTOR ↗</button>
+      <button class="btn p" id="reset">RESET</button>
+    </div>
+
+  </div>
+
+
+  <!-- STARTING POINTS -->
+  <div class="starting-box">
+
+    <div class="starting-title">
+      STARTING POINTS FOR ALL TEAMS
+    </div>
+
+    <div class="starting-controls">
+      <input id="startPoints" type="number" min="0" value="100">
+
+      <button class="btn t" id="setAllPoints">
+        SET FOR ALL TEAMS
+      </button>
+    </div>
+
+  </div>
+
+
+  <!-- TEAM CARDS -->
+  <div class="grid" id="grid"></div>
+</section>
+
+<script>
+const KEY='sg-leaderboard-v1';
+let S=load(), prev=[];S.rev=S.rev||0;
+function load(){try{const r=JSON.parse(localStorage.getItem(KEY));if(r&&r.teams&&r.teams.length)return r}catch(e){}
+  return{step:10,teams:Array.from({length:5},(_,i)=>({name:'Team '+(i+1),score:0}))}}
+let doc=null,first=true,tm=null;
+function setSt(t,ok){const e=$('st');e.textContent=t;e.style.color=ok?'#35d6c0':'#8b8b9c'}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}
+  if(doc){clearTimeout(tm);tm=setTimeout(()=>{doc.set(JSON.parse(JSON.stringify(S))).catch(()=>setSt('○ READ-ONLY (view only)',false))},120)}}
+const $=id=>document.getElementById(id);
+const board=$('board'),grid=$('grid');
+
+// view switching
+const solo=location.hash==='#screen';
+const defaultView = solo ? 'P' : 'A';
+function show(v){$('vP').classList.toggle('hide',v!=='P');$('vA').classList.toggle('hide',v!=='A');
+  $('tP').classList.toggle('on',v==='P');$('tA').classList.toggle('on',v==='A')}
+if(solo){
+  $('nav').classList.add('hide');
+  show('P');
+}else{
+  $('nav').classList.add('hide');
+  show('A');
+}
+
+$('openP').onclick=()=>window.open(location.href.split('#')[0]+'#screen','sgscreen');
+
+// projector render
+function renderBoard(){
+  const n=S.teams.length;
+const GAP = n <= 8 ? 8 : 5;
+
+// Calculate the available height on the projector screen
+const availableHeight = window.innerHeight - board.getBoundingClientRect().top - 30;
+
+// Automatically shrink rows when there are more teams
+const RH = Math.max(
+  38,
+  Math.floor((availableHeight - (n - 1) * GAP) / n)
+);
+  while(board.children.length<n){const r=document.createElement('div');r.className='row';
+    r.innerHTML='<div class="rk"></div><div class="pn"></div><div class="nm"><b></b><i></i></div><div class="track"><div class="fill"></div></div><div class="sc">0</div>';board.appendChild(r)}
+  while(board.children.length>n)board.lastChild.remove();
+  board.style.height=(n*RH+(n-1)*GAP)+'px';
+  const order=S.teams.map((t,i)=>i).sort((a,b)=>S.teams[b].score-S.teams[a].score||a-b);
+  const max=Math.max(1,...S.teams.map(t=>t.score));
+  const sym=['○','△','□'];
+  order.forEach((ti,pos)=>{
+    const t=S.teams[ti],r=board.children[ti],nm=t.name||('Team '+(ti+1));
+    r.style.height=RH+'px';r.style.top=(pos*(RH+GAP))+'px';
+    const lead=pos===0&&t.score>0,danger=n>2&&pos===n-1&&t.score<S.teams[order[0]].score;
+    r.classList.toggle('lead',lead);r.classList.toggle('danger',danger);
+    r.children[0].textContent=sym[pos]||(pos+1);
+    r.children[1].textContent='';
+    r.querySelector('b').textContent=nm;
+    r.querySelector('i').textContent=lead?'LEADING':danger?'DANGER ZONE':'';
+    r.querySelector('.fill').style.width=(Math.max(0,t.score)/max*100)+'%';
+    r.children[4].textContent=t.score;
+    if(prev[ti]!==undefined&&prev[ti]!==t.score){const c=t.score>prev[ti]?'up':'down';
+      r.classList.add(c);setTimeout(()=>r.classList.remove(c),900)}
+  });
+  $('sP').textContent=n;
+$('sL').textContent=S.teams[order[0]].score>0
+  ? (S.teams[order[0]].name||'Team '+(order[0]+1))
+  : '—';
+  prev=S.teams.map(t=>t.score);
+}
+
+// admin render
+function buildAdmin(){
+  const n=S.teams.length;
+  $('cnt').value=n;
+  const focusedName=document.activeElement&&document.activeElement.classList.contains('nmi');
+  if(grid.children.length!==n){grid.innerHTML='';
+    S.teams.forEach((t,i)=>{const c=document.createElement('div');c.className='card';c.dataset.i=i;
+      c.innerHTML=`<div class="top">
+  <div class="pid">${i+1}</div>
+  <input class="nmi" maxlength="20">
+</div>
+
+<div class="score-label">CURRENT POINTS</div>
+<div class="big">0</div>
+
+<div class="point-label">POINTS TO CHANGE</div>
+<input class="pv" type="number" min="0" value="10">
+
+<div class="ctl">
+  <button class="btn t" data-a="+">+ ADD POINTS</button>
+  <button class="btn p" data-a="-">− SUBTRACT POINTS</button>
+</div>`;
+      grid.appendChild(c)})}
+  [...grid.children].forEach((c,i)=>{const t=S.teams[i];c.querySelector('.big').textContent=t.score;
+    const ni=c.querySelector('.nmi');if(document.activeElement!==ni)ni.value=t.name;
+    const pv=c.querySelector('.pv');
+    if(document.activeElement!==pv)pv.value=t.points ?? 10;
+
+});
+}
+function renderAll(){renderBoard();buildAdmin()}
+function commit(){S.rev=(S.rev||0)+1;save();renderAll()}
+
+// admin events
+grid.addEventListener('click',e=>{
+  const b=e.target.closest('[data-a]');
+  if(!b)return;
+
+  const card=b.closest('.card');
+  const i=+card.dataset.i;
+
+  const input=card.querySelector('.pv');
+  const points=Math.max(0,parseInt(input.value,10)||0);
+
+  S.teams[i].points=points;
+
+  if(b.dataset.a==='+'){
+    S.teams[i].score+=points;
+  }else{
+    S.teams[i].score-=points;
+  }
+
+  commit();
+});
+grid.addEventListener('input',e=>{const c=e.target.closest('.card');if(!c)return;const i=+c.dataset.i;
+  if(e.target.classList.contains('nmi')){S.teams[i].name=e.target.value;S.rev=(S.rev||0)+1;save();renderBoard()}});
+grid.addEventListener('change',e=>{
+  if(!e.target.classList.contains('pv'))return;
+
+  const i=+e.target.closest('.card').dataset.i;
+  const value=Math.max(0,parseInt(e.target.value,10)||0);
+
+  S.teams[i].points=value;
+  save();
+});  
+grid.addEventListener('change',e=>{if(!e.target.classList.contains('sv'))return;
+  const i=+e.target.closest('.card').dataset.i,v=parseInt(e.target.value,10);
+  if(!isNaN(v)){S.teams[i].score=v;e.target.value='';commit()}});
+function setCount(n){n=Math.max(1,Math.min(15,n||1));
+  while(S.teams.length<n){
+  S.teams.push({
+    name:'Team '+(S.teams.length+1),
+    score:0,
+    points:10
+  });
+}
+  S.teams.length=n;grid.innerHTML='';commit()}
+$('cm').onclick=()=>setCount(S.teams.length-1);
+$('cp').onclick=()=>setCount(S.teams.length+1);
+$('cnt').onchange=e=>setCount(parseInt(e.target.value,10));
+$('setAllPoints').onclick=()=>{
+  const value=Math.max(
+    0,
+    parseInt($('startPoints').value,10)||0
+  );
+
+  S.teams.forEach(t=>{
+    t.score=value;
+  });
+
+  commit();
+};
+$('reset').onclick=()=>{if(confirm('Reset all scores to 0?')){S.teams.forEach(t=>t.score=0);commit()}};
+
+// sync between windows/tabs
+window.addEventListener('storage',e=>{if(e.key===KEY){S=load();S.rev=S.rev||0;renderAll()}});
+renderAll();
+
+window.addEventListener('resize',()=>{
+  if(location.hash==='#screen'){
+    renderBoard();
+  }
+});
+
+// live sync across devices
+(async()=>{
+  try{
+    const db=await claude.use('db');
+    if(!db)return;
+
+    doc=db.doc('lb/state');
+
+    doc.onSnapshot(snap=>{
+      setSt('● LIVE SYNC',true);
+
+      if(!snap.exists){
+        if(first){
+          first=false;
+          save();
+        }
+        return;
+      }
+
+      const d=JSON.parse(JSON.stringify(snap.data()));
+
+      if(first || d.rev !== S.rev){
+        first=false;
+        S=d;
+        S.rev=S.rev||0;
+
+        try{
+          localStorage.setItem(KEY,JSON.stringify(S));
+        }catch(e){}
+
+        grid.innerHTML='';
+        renderAll();
+      }
+    });
+
+  }catch(e){
+    setSt('○ LOCAL ONLY',false);
+  }
+})();
+
+</script>
+</body>
+</html>
