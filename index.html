@@ -338,6 +338,41 @@ h1 span{color:var(--pink);text-shadow:0 0 30px rgba(237,27,118,.9),3px 3px 0 #00
     min-width:0;
   }
 }
+/* Eliminated teams */
+.row.eliminated {
+  background: #18181d !important;
+  border-color: #444 !important;
+  border-left-color: #666 !important;
+  box-shadow: none !important;
+  animation: none !important;
+  opacity: 0.65;
+}
+
+.row.eliminated .nm b,
+.row.eliminated .sc {
+  color: #888;
+}
+
+.row.eliminated .nm i {
+  color: #ff4d4d;
+  font-weight: 900;
+  letter-spacing: 2px;
+}
+
+.row.eliminated .fill {
+  background: #555 !important;
+}
+
+.card.eliminated {
+  opacity: 0.65;
+  border-top-color: #666;
+}
+
+.card.eliminated .eliminate-btn {
+  background: #333;
+  border-color: #666;
+  color: #aaa;
+}
 </style>
 </head>
 <body>
@@ -615,13 +650,17 @@ const RH = Math.max(
   const sym=['○','△','□'];
   order.forEach((ti,pos)=>{
     const t=S.teams[ti],r=board.children[ti],nm=t.name||('Team '+(ti+1));
+const eliminated = !!t.eliminated;
     r.style.height=RH+'px';r.style.top=(pos*(RH+GAP))+'px';
     const lead=pos===0&&t.score>0,danger=n>2&&pos===n-1&&t.score<S.teams[order[0]].score;
-    r.classList.toggle('lead',lead);r.classList.toggle('danger',danger);
+    r.classList.toggle('eliminated', eliminated);
+r.classList.toggle('lead', !eliminated && lead);
+r.classList.toggle('danger', !eliminated && danger);
     r.children[0].textContent=sym[pos]||(pos+1);
     r.children[1].textContent='';
     r.querySelector('b').textContent=nm;
-    r.querySelector('i').textContent=lead?'LEADING':danger?'DANGER ZONE':'';
+    r.querySelector('i').textContent =
+  eliminated ? 'ELIMINATED' : lead ? 'LEADING' : danger ? 'DANGER ZONE' : '';
     r.querySelector('.fill').style.width=(Math.max(0,t.score)/max*100)+'%';
     r.children[4].textContent=t.score;
     if(prev[ti]!==undefined&&prev[ti]!==t.score){const c=t.score>prev[ti]?'up':'down';
@@ -655,9 +694,25 @@ function buildAdmin(){
 <div class="ctl">
   <button class="btn t" data-a="+">+ ADD POINTS</button>
   <button class="btn p" data-a="-">− SUBTRACT POINTS</button>
-</div>`;
+</div>
+
+<button
+  class="btn eliminate-btn"
+  data-eliminate="1"
+  style="width:100%;margin-top:10px;"
+>
+  ELIMINATE TEAM
+</button>`;
       grid.appendChild(c)})}
-  [...grid.children].forEach((c,i)=>{const t=S.teams[i];c.querySelector('.big').textContent=t.score;
+  [...grid.children].forEach((c,i)=>{
+  const t=S.teams[i];
+
+  c.classList.toggle('eliminated', !!t.eliminated);
+
+  const eliminated = !!t.eliminated;
+  c.querySelector('.big').textContent = t.score;
+  c.querySelector('.eliminate-btn').textContent =
+    eliminated ? 'TEAM ELIMINATED' : 'ELIMINATE TEAM';
     const ni=c.querySelector('.nmi');if(document.activeElement!==ni)ni.value=t.name;
     const pv=c.querySelector('.pv');
     if(document.activeElement!==pv)pv.value=t.points ?? 10;
@@ -668,22 +723,38 @@ function renderAll(){renderBoard();buildAdmin()}
 function commit(){S.rev=(S.rev||0)+1;save();renderAll()}
 
 // admin events
-grid.addEventListener('click',e=>{
-  const b=e.target.closest('[data-a]');
-  if(!b)return;
+grid.addEventListener('click', e => {
+  const card = e.target.closest('.card');
+  if (!card) return;
 
-  const card=b.closest('.card');
-  const i=+card.dataset.i;
+  const i = Number(card.dataset.i);
+  const team = S.teams[i];
 
-  const input=card.querySelector('.pv');
-  const points=Math.max(0,parseInt(input.value,10)||0);
+  // Eliminate or restore a team.
+  if (e.target.closest('[data-eliminate]')) {
+    if (team.eliminated) {
+      team.eliminated = false;
+    } else {
+      team.eliminated = true;
+    }
 
-  S.teams[i].points=points;
+    commit();
+    return;
+  }
 
-  if(b.dataset.a==='+'){
-    S.teams[i].score+=points;
-  }else{
-    S.teams[i].score-=points;
+  // Handle Add/Subtract Points.
+  const b = e.target.closest('[data-a]');
+  if (!b || team.eliminated) return;
+
+  const input = card.querySelector('.pv');
+  const points = Math.max(0, parseInt(input.value, 10) || 0);
+
+  team.points = points;
+
+  if (b.dataset.a === '+') {
+    team.score += points;
+  } else {
+    team.score -= points;
   }
 
   commit();
@@ -720,13 +791,24 @@ $('setAllPoints').onclick=()=>{
     parseInt($('startPoints').value,10)||0
   );
 
-  S.teams.forEach(t=>{
-    t.score=value;
-  });
+  S.teams.forEach(t => {
+  if (!t.eliminated) {
+    t.score = value;
+  }
+});
 
   commit();
 };
-$('reset').onclick=()=>{if(confirm('Reset all scores to 0?')){S.teams.forEach(t=>t.score=0);commit()}};
+$('reset').onclick = () => {
+  if (confirm('Reset all scores and eliminate statuses?')) {
+    S.teams.forEach(t => {
+      t.score = 0;
+      t.eliminated = false;
+    });
+
+    commit();
+  }
+};
 
 // sync between windows/tabs
 window.addEventListener('storage',e=>{if(e.key===KEY){S=load();S.rev=S.rev||0;renderAll()}});
