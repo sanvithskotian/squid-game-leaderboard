@@ -361,7 +361,52 @@ h1 span{color:var(--pink);text-shadow:0 0 30px rgba(237,27,118,.9),3px 3px 0 #00
 </div>
   <div id="board"></div>
 </section>
+<div id="loginOverlay" style="
+  position:fixed;
+  inset:0;
+  z-index:100;
+  display:none;
+  align-items:center;
+  justify-content:center;
+  padding:20px;
+  background:#0a0a0e;
+">
+  <div style="
+    width:100%;
+    max-width:380px;
+    padding:28px;
+    text-align:center;
+    background:#14141c;
+    border:1px solid #2a2a38;
+    border-top:4px solid #ed1b76;
+    border-radius:8px;
+  ">
+    <h2 style="letter-spacing:3px;">ADMIN <span style="color:#ed1b76;">LOGIN</span></h2>
 
+    <p style="color:#8b8b9c;font-size:13px;">
+      Enter the shared core-member password
+    </p>
+
+    <input
+      id="adminPassword"
+      type="password"
+      placeholder="Shared password"
+      autocomplete="current-password"
+      style="margin:12px 0;"
+    >
+
+    <button
+      id="loginButton"
+      class="btn p"
+      style="width:100%;"
+    >UNLOCK ADMIN</button>
+
+    <p
+      id="loginError"
+      style="color:#ff4d4d;font-size:13px;"
+    ></p>
+  </div>
+</div>
 <section id="vA" class="wrap hide">
 
   <h1 style="font-size:clamp(22px,5vw,38px)">Admin <span>Control</span></h1>
@@ -410,31 +455,141 @@ h1 span{color:var(--pink);text-shadow:0 0 30px rgba(237,27,118,.9),3px 3px 0 #00
   <!-- TEAM CARDS -->
   <div class="grid" id="grid"></div>
 </section>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
 
 <script>
-const KEY='sg-leaderboard-v1';
-let S=load(), prev=[];S.rev=S.rev||0;
+const firebaseConfig = {
+  apiKey: "AIzaSyBR173jpEsV80gD1Hbmn7xC97uc5QmCGfg",
+  authDomain: "squid-game-leaderboard.firebaseapp.com",
+  projectId: "squid-game-leaderboard",
+  storageBucket: "squid-game-leaderboard.firebasestorage.app",
+  messagingSenderId: "874318539698",
+  appId: "1:874318539698:web:8d8fa2e96ca1a8e72712ab"
+};
+
+firebase.initializeApp(firebaseConfig);
+
+const auth = firebase.auth();
+const db = firebase.firestore();
+
+const KEY = 'sg-leaderboard-v1';
+let S = load(), prev = [];
+S.rev = S.rev || 0;
+
+let doc = db.doc('lb/state');
+let first = true;
+let tm = null;
 function load(){try{const r=JSON.parse(localStorage.getItem(KEY));if(r&&r.teams&&r.teams.length)return r}catch(e){}
   return{step:10,teams:Array.from({length:5},(_,i)=>({name:'Team '+(i+1),score:0}))}}
-let doc=null,first=true,tm=null;
+
 function setSt(t,ok){const e=$('st');e.textContent=t;e.style.color=ok?'#35d6c0':'#8b8b9c'}
-function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}
-  if(doc){clearTimeout(tm);tm=setTimeout(()=>{doc.set(JSON.parse(JSON.stringify(S))).catch(()=>setSt('○ READ-ONLY (view only)',false))},120)}}
+function save() {
+  try {
+    localStorage.setItem(KEY, JSON.stringify(S));
+  } catch (error) {}
+
+  if (!doc || !auth.currentUser || applyingRemote) return;
+
+  clearTimeout(tm);
+
+  tm = setTimeout(async () => {
+    try {
+      await doc.set(JSON.parse(JSON.stringify(S)));
+      setSt('● LIVE SYNC', true);
+    } catch (error) {
+      console.error('Firestore write failed:', error);
+      setSt('○ SYNC ERROR', false);
+    }
+  }, 120);
+}
 const $=id=>document.getElementById(id);
 const board=$('board'),grid=$('grid');
+const loginOverlay = $('loginOverlay');
+const adminPassword = $('adminPassword');
+const loginButton = $('loginButton');
+const loginError = $('loginError');
 
-// view switching
-const solo=location.hash==='#screen';
-const defaultView = solo ? 'P' : 'A';
-function show(v){$('vP').classList.toggle('hide',v!=='P');$('vA').classList.toggle('hide',v!=='A');
-  $('tP').classList.toggle('on',v==='P');$('tA').classList.toggle('on',v==='A')}
-if(solo){
-  $('nav').classList.add('hide');
-  show('P');
-}else{
-  $('nav').classList.add('hide');
-  show('A');
+// Replace this with the email of the Firebase Auth user
+// you created in Step 9.
+const ADMIN_EMAIL = 'coreteam@wiki.com';
+
+function updateAccess() {
+  const isProjector = location.hash === '#screen';
+  const signedIn = !!auth.currentUser;
+
+  if (isProjector) {
+    loginOverlay.style.display = 'none';
+    $('vP').classList.remove('hide');
+    $('vA').classList.add('hide');
+  } else if (signedIn) {
+    loginOverlay.style.display = 'none';
+    $('vA').classList.remove('hide');
+    $('vP').classList.add('hide');
+  } else {
+    loginOverlay.style.display = 'flex';
+    $('vA').classList.add('hide');
+    $('vP').classList.add('hide');
+  }
 }
+
+loginButton.onclick = async () => {
+  const password = adminPassword.value;
+
+  if (!password) {
+    loginError.textContent = 'Enter the shared password.';
+    return;
+  }
+
+  loginButton.disabled = true;
+  loginError.textContent = 'Signing in...';
+
+  try {
+    await auth.signInWithEmailAndPassword(ADMIN_EMAIL, password);
+    adminPassword.value = '';
+    loginError.textContent = '';
+  } catch (error) {
+    loginError.textContent = 'Login failed. Check the password.';
+  } finally {
+    loginButton.disabled = false;
+  }
+};
+
+adminPassword.addEventListener('keydown', event => {
+  if (event.key === 'Enter') loginButton.click();
+});
+
+auth.onAuthStateChanged(() => {
+  updateAccess();
+});
+// View switching
+function show(v) {
+  $('vP').classList.toggle('hide', v !== 'P');
+  $('vA').classList.toggle('hide', v !== 'A');
+
+  $('tP').classList.toggle('on', v === 'P');
+  $('tA').classList.toggle('on', v === 'A');
+}
+
+function configureView() {
+  const isProjector = location.hash === '#screen';
+
+  $('nav').classList.add('hide');
+
+  if (isProjector) {
+    show('P');
+  } else {
+    show('A');
+  }
+
+  updateAccess();
+}
+
+window.addEventListener('hashchange', configureView);
+configureView();
 
 $('openP').onclick=()=>window.open(location.href.split('#')[0]+'#screen','sgscreen');
 
@@ -583,45 +738,65 @@ window.addEventListener('resize',()=>{
   }
 });
 
-// live sync across devices
-(async()=>{
-  try{
-    const db=await claude.use('db');
-    if(!db)return;
+// Firebase live sync across devices
+let applyingRemote = false;
 
-    doc=db.doc('lb/state');
+auth.onAuthStateChanged(user => {
+  updateAccess();
 
-    doc.onSnapshot(snap=>{
-      setSt('● LIVE SYNC',true);
-
-      if(!snap.exists){
-        if(first){
-          first=false;
-          save();
-        }
-        return;
-      }
-
-      const d=JSON.parse(JSON.stringify(snap.data()));
-
-      if(first || d.rev !== S.rev){
-        first=false;
-        S=d;
-        S.rev=S.rev||0;
-
-        try{
-          localStorage.setItem(KEY,JSON.stringify(S));
-        }catch(e){}
-
-        grid.innerHTML='';
-        renderAll();
-      }
-    });
-
-  }catch(e){
-    setSt('○ LOCAL ONLY',false);
+  if (user) {
+    setSt('● CONNECTING...', true);
+  } else if (location.hash === '#screen') {
+    setSt('● PROJECTOR', true);
+  } else {
+    setSt('○ LOGIN REQUIRED', false);
   }
-})();
+});
+
+doc.onSnapshot(
+  snapshot => {
+    if (!snapshot.exists) {
+      setSt('● CONNECTED', true);
+
+      if (auth.currentUser && first) {
+        first = false;
+        save();
+      }
+
+      return;
+    }
+
+    const remote = snapshot.data();
+
+    if (!remote || !Array.isArray(remote.teams)) {
+      setSt('○ INVALID DATA', false);
+      return;
+    }
+
+    if (first || remote.rev !== S.rev) {
+      first = false;
+      applyingRemote = true;
+
+      S = remote;
+      S.rev = S.rev || 0;
+
+      try {
+        localStorage.setItem(KEY, JSON.stringify(S));
+      } catch (error) {}
+
+      grid.innerHTML = '';
+      renderAll();
+
+      applyingRemote = false;
+    }
+
+    setSt('● LIVE SYNC', true);
+  },
+  error => {
+    console.error('Firestore listener error:', error);
+    setSt('○ SYNC ERROR', false);
+  }
+);
 
 </script>
 </body>
