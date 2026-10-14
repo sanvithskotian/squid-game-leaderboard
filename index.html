@@ -32,7 +32,6 @@ h1 span{color:var(--pink)}
 .lead .fill{background:linear-gradient(90deg,#a3104f,var(--pink))}
 .sc{width:84px;text-align:right;font-size:clamp(18px,3vw,32px);font-weight:900;font-variant-numeric:tabular-nums}
 .row.up{background:#0f2a26}.row.down{background:#2e1019}
-/* admin */
 
 /* admin */
 
@@ -234,7 +233,7 @@ input{background:#0c0c12;color:var(--text);border:1px solid var(--line);border-r
 .pid{background:var(--pink);color:#fff;font-weight:900;border-radius:50%;min-width:32px;height:32px;display:grid;place-items:center}
 .big{font-size:42px;font-weight:900;text-align:center;margin:8px 0;font-variant-numeric:tabular-nums}
 .ctl{display:flex;gap:8px}.ctl .btn{flex:1;font-size:18px}
-.set{margin-top:8px}
+
 
 .bg{position:fixed;inset:0;width:100%;height:100%;z-index:-1;fill:none;stroke:var(--pink);stroke-width:.5;opacity:.22;pointer-events:none}
 .bg .b2{stroke:var(--teal)}.bg .b1,.bg .b2,.bg .b3{transform-box:fill-box;transform-origin:center;animation:fl 14s ease-in-out infinite alternate}
@@ -552,23 +551,29 @@ const loginError = $('loginError');
 // you created in Step 9.
 const ADMIN_EMAIL = 'coreteam@wiki.com';
 
+let authReady = false;
+let authenticated = false;
+
 function updateAccess() {
   const isProjector = location.hash === '#screen';
-  const signedIn = !!auth.currentUser;
 
   if (isProjector) {
     loginOverlay.style.display = 'none';
     $('vP').classList.remove('hide');
     $('vA').classList.add('hide');
-  } else if (signedIn) {
-    loginOverlay.style.display = 'none';
-    $('vA').classList.remove('hide');
-    $('vP').classList.add('hide');
-  } else {
+    return;
+  }
+
+  if (!authReady || !authenticated) {
     loginOverlay.style.display = 'flex';
     $('vA').classList.add('hide');
     $('vP').classList.add('hide');
+    return;
   }
+
+  loginOverlay.style.display = 'none';
+  $('vA').classList.remove('hide');
+  $('vP').classList.add('hide');
 }
 
 loginButton.onclick = async () => {
@@ -597,7 +602,24 @@ adminPassword.addEventListener('keydown', event => {
   if (event.key === 'Enter') loginButton.click();
 });
 
-auth.onAuthStateChanged(() => {
+let initialAuthCheck = true;
+
+auth.onAuthStateChanged(async user => {
+  if (initialAuthCheck) {
+    initialAuthCheck = false;
+    authReady = true;
+
+    // Require a fresh login whenever the Admin page opens
+    if (location.hash !== '#screen' && user) {
+      await auth.signOut();
+      authenticated = false;
+      updateAccess();
+      return;
+    }
+  }
+
+  authReady = true;
+  authenticated = !!user;
   updateAccess();
 });
 // View switching
@@ -677,7 +699,7 @@ $('sL').textContent=S.teams[order[0]].score>0
 function buildAdmin(){
   const n=S.teams.length;
   $('cnt').value=n;
-  const focusedName=document.activeElement&&document.activeElement.classList.contains('nmi');
+  
   if(grid.children.length!==n){grid.innerHTML='';
     S.teams.forEach((t,i)=>{const c=document.createElement('div');c.className='card';c.dataset.i=i;
       c.innerHTML=`<div class="top">
@@ -770,9 +792,7 @@ grid.addEventListener('change',e=>{
   S.teams[i].points=value;
   save();
 });  
-grid.addEventListener('change',e=>{if(!e.target.classList.contains('sv'))return;
-  const i=+e.target.closest('.card').dataset.i,v=parseInt(e.target.value,10);
-  if(!isNaN(v)){S.teams[i].score=v;e.target.value='';commit()}});
+
 function setCount(n){n=Math.max(1,Math.min(15,n||1));
   while(S.teams.length<n){
   S.teams.push({
